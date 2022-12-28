@@ -26,23 +26,58 @@ def retrieveData(dirPath):
                 # Adds data about body part used
                 if event['shot']['body_part']['name'] == 'Head':
                     curShot.update({'Head' : 1, 'LeftFoot' : 0, 'RightFoot' : 0, 'OtherBodyPart' : 0})
-
                 elif event['shot']['body_part']['name'] == 'LeftFoot':
                     curShot.update({'Head' : 0, 'LeftFoot' : 1, 'RightFoot' : 0, 'OtherBodyPart' : 0})
-
                 elif event['shot']['body_part']['name'] == 'RightFoot':
                     curShot.update({'Head' : 0, 'LeftFoot' : 0, 'RightFoot' : 1, 'OtherBodyPart' : 0})
-
                 else:
                     curShot.update({'Head' : 0, 'LeftFoot' : 0, 'RightFoot' : 0, 'OtherBodyPart' : 1})
 
-                # Adds end location of shot
-                curShot.update({'YendLoc' : event['shot']['end_location'][1]})
-                
-                if len(event['shot']['end_location']) == 3:
-                    curShot.update({'ZendLoc' : event['shot']['end_location'][2]})
+                # Adds if shot was deflected or not
+                if 'deflected' in event['shot'].keys():
+                    curShot.update({'Deflected' : 1})
                 else:
-                    curShot.update({'ZendLoc' : 2.67/2})
+                    curShot.update({'Deflected' : 0})
+
+                # Adds if shot was on open goal
+                if 'open_goal' in event['shot'].keys():
+                    curShot.update({'OpenGoal' : 1})
+                else:
+                    curShot.update({'OpenGoal' : 0})
+
+                # Adds if shot was after an aerial duel
+                if 'aerial_won' in event['shot'].keys():
+                    curShot.update({'AerialWon' : 1})
+                else:
+                    curShot.update({'AerialWon' : 0})
+
+                # Adds data about type of shot
+                if event['shot']['type']['name'] == 'Corner':
+                    curShot.update({'Corner' : 1, 'FreeKick' : 0,
+                    'OpenPlay' : 0, 'Penalty' : 0, 'KickOff' : 0})
+                elif event['shot']['type']['name'] == 'Free Kick':
+                    curShot.update({'Corner' : 0, 'FreeKick' : 1,
+                    'OpenPlay' : 0, 'Penalty' : 0, 'KickOff' : 0})
+                elif event['shot']['type']['name'] == 'OpenPlay':
+                    curShot.update({'Corner' : 0, 'FreeKick' : 0,
+                    'OpenPlay' : 1, 'Penalty' : 0, 'KickOff' : 0})
+                elif event['shot']['type']['name'] == 'Penalty':
+                    curShot.update({'Corner' : 0, 'FreeKick' : 0,
+                    'OpenPlay' : 0, 'Penalty' : 1, 'KickOff' : 0})
+                elif event['shot']['type']['name'] == 'Kick Off':
+                    curShot.update({'Corner' : 0, 'FreeKick' : 0,
+                    'OpenPlay' : 0, 'Penalty' : 0, 'KickOff' : 1})
+                else:
+                    curShot.update({'Corner' : 0, 'FreeKick' : 0,
+                    'OpenPlay' : 0, 'Penalty' : 0, 'KickOff' : 0})
+
+                # Adds end location of shot
+                # curShot.update({'YendLoc' : event['shot']['end_location'][1]})
+                
+                # if len(event['shot']['end_location']) == 3:
+                #     curShot.update({'ZendLoc' : event['shot']['end_location'][2]})
+                # else:
+                #     curShot.update({'ZendLoc' : 2.67/2})
                 
                 if event['shot']['outcome']['name'] == 'Goal':
                     curShot.update({'Goal' : 1})
@@ -55,8 +90,6 @@ def retrieveData(dirPath):
             # Writes shots of current match to 
             with open(f'shot_data/{filename}_shots.json', "w") as write_file:
                 json.dump(Match, write_file)
-
-        sleep(0.1)
 
 # Partitions the data set into training and testing data
 def partition(dirPath, testShare):
@@ -130,7 +163,7 @@ def cost(X, y, theta):
     m = len(y)
     h = sigmoid(X @ theta)
     epsilon = 1e-5
-    cost = (1/m)*((((-1) * y).T @ np.log(h + epsilon))-((1-y).T @ np.log(1-h + epsilon)))
+    cost = (-1/m)*((y.T @ np.log(h + epsilon))+((1-y).T @ np.log(1-h + epsilon)))
     return cost
 
 def gradDescent(X, y, params, learnRate, iter):
@@ -152,7 +185,7 @@ def testModel(params, testData):
 
 def main():
     trainData, testData = partition('shot_data', 0.2)
-    params = logReg(trainData, 200, 0.005)
+    params = logReg(trainData, 1000, 0.005)
     testModel(params, testData)
     return params
 
